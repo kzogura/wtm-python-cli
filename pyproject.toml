@@ -1,0 +1,29 @@
+[project]
+name = "wt-cli"
+version = "0.1.0"
+description = "Gitea Issue を中心に Git worktree と AI コーディングエージェントを管理する CLI"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+dependencies = [
+    "typer>=0.12",
+    "rich>=13.7",
+]
+
+[project.scripts]
+# wt は Windows Terminal の wt.exe と衝突するため wtm とする
+wtm = "wt.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
