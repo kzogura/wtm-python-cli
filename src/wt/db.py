@@ -249,6 +249,12 @@ class Database:
             (worktree_id,),
         ).fetchone()
 
+    def list_checkpoints(self, c: sqlite3.Connection, issue_number: int) -> list[sqlite3.Row]:
+        # 整理済み（ARCHIVED）や作り直し前の worktree の Checkpoint も含める
+        return c.execute(
+            "SELECT * FROM checkpoints WHERE issue_number=? ORDER BY created_at DESC, id DESC", (issue_number,)
+        ).fetchall()
+
     def insert_checkpoint(self, c: sqlite3.Connection, data: dict[str, Any]) -> int:
         data = dict(data)
         data["uncommitted_json"] = json.dumps(data.pop("uncommitted", []), ensure_ascii=False)

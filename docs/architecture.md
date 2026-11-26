@@ -117,6 +117,7 @@ meta(key PK, value)   -- schema_version
 | `wtm finish N` | 2 | `[--push] [--create-pr] [--no-pr] [--title T] [--draft] [--allow-dirty] [--skip-checkpoint] [--yes] [--dry-run]` | 検査結果パネル、push・PR 作成（指定/確認時のみ）、REVIEW へ遷移 |
 | `wtm checkpoint N` | 2 | `[--completed --remaining --next --blockers] [--publish] [--yes]` | Checkpoint（JSON + DB）、`--publish` で Issue コメント |
 | `wtm checkpoint N --from-file F` | 3 | AI が生成した Checkpoint ファイル（Markdown / JSON） | 取り込み（元ファイルは変更しない） |
+| `wtm checkpoints N` | 3 | `[--show ID] [--limit N] [--json]` | Checkpoint 履歴の一覧（新しい順）・詳細表示。整理済みの作業も参照可 |
 | `wtm review N` | 3 | `[--format text\|md\|json] [--output F] [--offline]` | ルールベースレポート（`schema_version: 1`） |
 | `wtm resume N` | 3 | `[--agent A] [--session ID] [--new-session] [--offline] [--yes] [--dry-run]` | エージェント起動。再開に失敗したら確認のうえ新規セッション |
 | `wtm handoff N` | 3 | `[--offline] [--stdout]` | `.wtm/handoff.md` の生成 |

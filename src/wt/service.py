@@ -889,6 +889,32 @@ def get_checkpoint(app: App, checkpoint_id: int) -> sqlite3.Row:
     return cp
 
 
+def checkpoint_to_dict(cp: sqlite3.Row) -> dict[str, Any]:
+    d = dict(cp)
+    d["uncommitted"] = json.loads(d.pop("uncommitted_json") or "[]")
+    return d
+
+
+def collect_checkpoints(app: App, issue_number: int) -> dict[str, Any]:
+    """Issue の Checkpoint 履歴（新しい順）。worktree の整理後も参照できる。"""
+    with app.db.read() as c:
+        known = c.execute("SELECT 1 FROM worktrees WHERE issue_number=? LIMIT 1", (issue_number,)).fetchone()
+        rows = app.db.list_checkpoints(c, issue_number)
+    if known is None and not rows:
+        raise NotManagedError(f"Issue #{issue_number} の管理対象 worktree はありません。",
+                              hint="wtm start --issue または wtm adopt で登録してください。")
+    return {"issue": issue_number, "checkpoints": [checkpoint_to_dict(r) for r in rows]}
+
+
+def get_issue_checkpoint(app: App, issue_number: int, checkpoint_id: int) -> sqlite3.Row:
+    cp = get_checkpoint(app, checkpoint_id)
+    if cp["issue_number"] != issue_number:
+        raise NotManagedError(f"Checkpoint id={checkpoint_id} は Issue #{issue_number} のものではありません"
+                              f"（Issue #{cp['issue_number']}）。",
+                              hint=f"一覧は wtm checkpoints {issue_number} で確認できます。")
+    return cp
+
+
 def publish_checkpoint(app: App, checkpoint_id: int) -> str:
     """Checkpoint を Issue にコメント投稿する（実環境への書き込み）。投稿本文を返す。"""
     if not app.config.forge.enabled:

@@ -492,6 +492,69 @@ def checkpoint(
     console.print(f"[green]Issue #{issue} にコメントを投稿しました。[/]")
 
 
+def _first_line(text: str | None) -> str:
+    lines = (text or "").strip().splitlines()
+    return lines[0] if lines else ""
+
+
+@app.command()
+@handle_errors
+def checkpoints(
+    issue: Annotated[int, typer.Argument(help="Issue 番号")],
+    show: Annotated[int | None, typer.Option("--show", help="詳細を表示する Checkpoint ID")] = None,
+    limit: Annotated[int | None, typer.Option("--limit", "-n", min=1, help="新しい順に表示する件数")] = None,
+    as_json: Annotated[bool, typer.Option("--json", help="JSON で出力")] = False,
+) -> None:
+    """wtm checkpoint で記録した Checkpoint の履歴を表示する（worktree の整理後も参照可）。"""
+    a = _app()
+    if show is not None:
+        if limit is not None:
+            raise WtError("--show と --limit は同時に指定できません。")
+        cp = service.get_issue_checkpoint(a, issue, show)
+        if as_json:
+            _print_json(service.checkpoint_to_dict(cp))
+            return
+        _checkpoint_show(service.checkpoint_to_dict(cp))
+        return
+    data = service.collect_checkpoints(a, issue)
+    total = len(data["checkpoints"])
+    if limit is not None:
+        data["checkpoints"] = data["checkpoints"][:limit]
+    if as_json:
+        _print_json(data)
+        return
+    if not data["checkpoints"]:
+        console.print(f"Issue #{issue} の Checkpoint はありません。")
+        return
+    table = Table(title=f"Issue #{issue} の Checkpoint（{len(data['checkpoints'])}/{total} 件）")
+    for col in ("ID", "記録日時", "HEAD", "未コミット", "完了事項", "次のアクション", "投稿"):
+        table.add_column(col, overflow="fold", no_wrap=col in ("ID", "HEAD"))
+    for cp in data["checkpoints"]:
+        table.add_row(str(cp["id"]), _local_date(cp["created_at"]), (cp["head"] or "-")[:8],
+                      str(len(cp["uncommitted"])), escape(_first_line(cp["completed"])),
+                      escape(_first_line(cp["next_action"])), "済" if cp["published_at"] else "-")
+    console.print(table)
+    console.print(f"[dim]詳細: wtm checkpoints {issue} --show <ID>[/]")
+
+
+def _checkpoint_show(cp: dict[str, Any]) -> None:
+    lines = [
+        f"[bold]記録日時:[/] {_local_date(cp['created_at'])}    [bold]HEAD:[/] {escape(cp['head'] or '-')}",
+        f"[bold]worktree:[/] {escape(cp['worktree_path'])}",
+        f"[bold]AI セッション:[/] {escape(cp['session_id'] or '-')}",
+        f"[bold]Issue への投稿:[/] {_local_date(cp['published_at']) if cp['published_at'] else '未投稿'}",
+        f"[bold]ファイル:[/] {escape(cp['file_path'] or '-')}",
+    ]
+    for title, key in (("完了事項", "completed"), ("未完了事項", "remaining"),
+                       ("次のアクション", "next_action"), ("ブロッカー", "blockers")):
+        lines += ["", f"[bold]{title}:[/]", escape((cp[key] or "").strip() or "（なし）")]
+    lines += ["", f"[bold]未コミットファイル:[/] {len(cp['uncommitted'])} 件"]
+    lines += [f"    {escape(f)}" for f in cp["uncommitted"]]
+    if cp["diffstat"]:
+        lines += ["", "[bold]差分統計:[/]", escape(cp["diffstat"])]
+    console.print(Panel("\n".join(lines), title=f"Issue #{cp['issue_number']} Checkpoint id={cp['id']}"))
+
+
 # ---------------------------------------------------------------------------
 @app.command()
 @handle_errors

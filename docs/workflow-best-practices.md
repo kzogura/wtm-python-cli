@@ -78,6 +78,7 @@ wtm start --new --title "タイトル"     # Issue を作成してから開始
 | セッションを終える | `wtm checkpoint 101 --from-file .wtm/checkpoint.md` | AI が書いた内容を取り込む。完了・未完了・次のアクションが書かれているか確認する |
 | 手で記録する | `wtm checkpoint 101` | 対話で入力できる。コミットはしない |
 | 進捗を共有する | `wtm checkpoint 101 --publish` | Issue にコメントする。投稿前に本文を確認する |
+| 経過を振り返る | `wtm checkpoints 101` | 記録した Checkpoint を新しい順に一覧する。`--show <ID>` で全文 |
 | 状況を思い出す | `wtm status 101` | 最終確認日も更新される |
 | 続きから始める | `wtm resume 101` | 前回のセッションを再開する |
 | 会話が長くなった | `wtm resume 101 --new-session` | Issue と Checkpoint を渡して新しく始める |
