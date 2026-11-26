@@ -78,3 +78,43 @@ def test_cli_without_init(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     r = runner.invoke(app, ["list"])
     assert r.exit_code == 1 and "wtm init" in r.output
+
+
+def test_cli_checkpoints_history(repo, workspace, monkeypatch):
+    monkeypatch.chdir(repo)
+    assert runner.invoke(app, ["init", "--yes", "--no-gitea"]).exit_code == 0
+    r = runner.invoke(app, ["start", "--issue", "201", "--offline", "--title", "History", "--no-launch"])
+    assert r.exit_code == 0, r.output
+    r = runner.invoke(app, ["start", "--issue", "202", "--offline", "--title", "Other", "--no-launch"])
+    assert r.exit_code == 0, r.output
+
+    for i in (1, 2):
+        r = runner.invoke(app, ["checkpoint", "201", "--completed", f"done {i}\n補足メモ", "--next", f"next {i}", "--yes"])
+        assert r.exit_code == 0, r.output
+
+    r = runner.invoke(app, ["checkpoints", "201", "--json"])
+    assert r.exit_code == 0, r.output
+    data = json.loads(r.stdout)
+    assert data["issue"] == 201
+    # start 時の初回 Checkpoint があれば含まれる。新しい順に並ぶ
+    assert [c["next_action"] for c in data["checkpoints"][:2]] == ["next 2", "next 1"]
+    assert isinstance(data["checkpoints"][0]["uncommitted"], list)
+    newest = data["checkpoints"][0]["id"]
+
+    r = runner.invoke(app, ["checkpoints", "201", "--limit", "1", "--json"])
+    assert [c["id"] for c in json.loads(r.stdout)["checkpoints"]] == [newest]
+
+    r = runner.invoke(app, ["checkpoints", "201"])
+    assert r.exit_code == 0 and "done 2" in r.output and "補足メモ" not in r.output
+
+    r = runner.invoke(app, ["checkpoints", "201", "--show", str(newest)])
+    assert r.exit_code == 0 and "done 2" in r.output and "補足メモ" in r.output and "next 2" in r.output
+
+    r = runner.invoke(app, ["checkpoints", "201", "--show", str(newest), "--json"])
+    assert json.loads(r.stdout)["completed"] == "done 2\n補足メモ"
+
+    r = runner.invoke(app, ["checkpoints", "202", "--show", str(newest)])
+    assert r.exit_code == 1 and "Issue #201" in r.output
+
+    r = runner.invoke(app, ["checkpoints", "999"])
+    assert r.exit_code == 1 and "管理対象" in r.output

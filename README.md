@@ -117,10 +117,13 @@ wtm status 101 --offline --json
 wtm checkpoint 101                  # 完了事項・未完了事項・次のアクション・ブロッカーを対話入力
 wtm checkpoint 101 --completed "API 実装" --remaining "テスト" --next "レビュー依頼" --yes
 wtm checkpoint 101 --publish        # Issue に進捗をコメント（投稿内容を表示して確認）
+wtm checkpoints 101                 # 記録した Checkpoint の履歴を新しい順に一覧（--limit N / --json）
+wtm checkpoints 101 --show 12       # Checkpoint id=12 の内容を全文表示
 ```
 
 HEAD・差分統計・未コミットファイル一覧も自動で記録します。ファイルの変更やコミットは行いません。
 Issue へのコメントには AI セッションの内容・ID を含めません。
+`wtm checkpoints` は worktree を整理（ARCHIVED）した後も参照できます。
 
 AI が書いた Checkpoint ファイルも取り込めます（Markdown または JSON、UTF-8、1 MiB まで）。
 
